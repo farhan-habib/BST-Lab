@@ -20,7 +20,15 @@ class BSTree {
 	#comparator = function (a, b) {
 		throw "Comparator not defined!";
 	};
-
+	/**
+	 *
+	 * @param {Function} comparator
+	 * comparator must be a function(a,b)
+	 * which returns:
+	 * < 0 if a < b
+	 * = 0 if a == b
+	 * > 0 if a > b
+	 */
 	constructor(comparator) {
 		this.#root = null;
 
@@ -61,7 +69,6 @@ class BSTree {
 			addHelper(this.#root, data);
 		}
 	}
-	remove(data) {}
 
 	//Traversals
 	/**
@@ -106,94 +113,91 @@ class BSTree {
 		postOrderTraversalHelper(this.#root);
 		return returnValue;
 	}
-
-	//TODO: FIX REMOVING TWO CHILDREN
-	#removeNode(parent, remove) {
-		//start off by setting the node to be removed as the left child by default
-		let isLeftChild = true;
-		//if the node is the right child, set it as such, else leave as left.
-		if (parent.right == remove) {
-			isLeftChild = false;
-		}
-		//create pointer to the left child of the node to be node to be removed.
-		let pointHere = remove.left;
-		if (remove.left === null) {
-			//if the left node doesn't exist, set it to the right node.
-			pointHere = remove.right;
-		}
-		//if the node is the left child of its parent, set parent's left node to the child. Otherwise, set it to its left.
-		if (isLeftChild) {
-			//remove is left child
-			parent.left = pointHere;
-		} else {
-			//remove is right child
-			parent.right = pointHere;
-		}
-
-		return remove.data;
-	}
+	/**
+	 *
+	 * @param {Object} data The data you wish to remove from the array
+	 * @returns {Object} The value of the BSTNode
+	 */
 	remove(data) {
-		let parent = null;
-		let r = this.#root;
-		let i = 0;
-		while (r != null) {
-			if (this.#comparator(r.data, data) < 0) {
-				parent = r;
-				r = r.right;
-			} else if (this.#comparator(r.data, data) > 0) {
-				parent = r;
-				r = r.left;
-			} else if (parent == null) {
-				//http://www.mathcs.emory.edu/~cheung/Courses/171/Syllabus/9-BinTree/BST-delete2.html
-				//Had really good diagrams explaining how to do this ^^
-				//TODO: Removing Root, make code more elegant
-				if ((this.#root.left != null) & (this.#root.right != null)) {
-					//two children
-
-					let p = this.#root;
-					let next = p.left;
-					while (next.right != null) {
-						p = next;
-						next = next.right;
-					}
-					this.#root.data = next.data;
-					this.#removeNode(p, next);
-				} else if ((this.#root.left == null) & (this.#root.right != null)) {
-					//no left child
-					this.#root = this.#root.right;
-				} else if ((this.#root.left != null) & (this.#root.right == null)) {
-					//no right child
-					this.#root = this.#root.left;
-				} else {
-					this.#root = null;
-					//no children
-				}
+		function removeNode(parent, remove) {
+			let isLeftChild = true;
+			if (parent.right === remove) {
+				isLeftChild = false;
+			}
+			let pointHere = remove.left;
+			if (remove.left === null) {
+				pointHere = remove.right;
+			}
+			if (isLeftChild) {
+				parent.left = pointHere;
 			} else {
-				//both children are filled
-				if ((r.left != null) & (r.right != null)) {
-					let rp = r;
-					let removeOne = rp.left;
-					while (removeOne.right != null) {
-						rp = removeOne;
-						removeOne = removeOne.right;
+				parent.right = pointHere;
+			}
+			return remove.data;
+		}
+		let parent = null;
+		let root = this.#root;
+		while (root !== null) {
+			if (this.#comparator(root.data, data) < 0) {
+				parent = root;
+				root = root.right;
+			} else if (this.#comparator(root.data, data) > 0) {
+				parent = root;
+				root = root.left;
+			} else {
+				if (parent === null) {
+					if (root.left !== null && root.right !== null) {
+						//http://www.mathcs.emory.edu/~cheung/Courses/171/Syllabus/9-BinTree/BST-delete2.html
+						//Helped out a lot ^
+						let rightmostleft = root.left;
+						let rightmostleftParent = root;
+						while (rightmostleft.right !== null) {
+							rightmostleftParent = rightmostleft;
+							rightmostleft = rightmostleft.right;
+						}
+						let data = root.data;
+						root.data = rightmostleft.data;
+						rightmostleft.data = data;
+						return removeNode(rightmostleftParent, rightmostleft);
+					} else if (root.left === null && root.right === null) {
+						//root has zero children, set to null.
+						let pointer = root.data;
+						this.#root = null;
+						return pointer;
+					} else {
+						// one child, replace root with child.
+						if (root.left !== null) {
+							//left child
+							let pointer = root.data;
+							root = root.left;
+							return pointer;
+						} else {
+							//right child
+							let pointer = root.data;
+							root = root.right;
+							return pointer;
+						}
 					}
-					let t = r.data;
-					r.data = removeOne.data;
-					removeOne.data = t;
 				} else {
-					return this.#removeNode(parent, r);
+					if (root.left !== null && root.right !== null) {
+						//do the two childron removal special stuff
+						let rp = root;
+						let removeOne = rp.left;
+						while (removeOne.right !== null) {
+							rp = removeOne;
+							removeOne = removeOne.right;
+						}
+						let t = root.data;
+						root.data = removeOne.data;
+						removeOne.data = t;
+						return removeNode(rp, removeOne);
+					} else {
+						return removeNode(parent, root);
+					}
 				}
 			}
 		}
-		return null;
-	} // // Private Methods -- new to ECMA2022
-	// #removeNode(node) {}
-	// #findNode(data) {}
-
-	/* Other methods as needed */
-
-	debug() {
-		console.log(this.#root);
+		return data;
 	}
 }
 module.exports = {

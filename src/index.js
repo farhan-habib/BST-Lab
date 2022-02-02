@@ -4,38 +4,45 @@ const { BSTree } = require("./BST.js");
 const { Item } = require("./item.js");
 const { ConversionUtil } = require("./Utils/Conversionutil.js");
 
-/**
- * dataArray is an array containing strings of JSON objects
- *
- * Example:
- * {"name":"Shoes of Negligible Looks","stock":-7,"cost":"$52.81"}
- */
+//		File Input
 const dataArray = fs
 	.readFileSync("./inventory.txt", "utf8")
 	.toString()
 	.split("\n");
-
+//		BST/Logic
 let NameSortBSt = new BSTree((itemA, itemB) => {
-	if (itemA.getName().localeCompare(itemB.getName()) === 0) {
+	if (itemA.name.localeCompare(itemB.name) === 0) {
 		return 0;
-	} else if (itemA.getName().localeCompare(itemB.getName()) > 0) {
+	} else if (itemA.name.localeCompare(itemB.name) > 0) {
 		return 1;
 	} else {
 		return -1;
 	}
 });
 
-for (let element of dataArray) {
-	try {
+for (let i = 0; i < dataArray.length; i++) {
+	let element = dataArray[i];
+	if (element.trim().length > 0) {
 		element = JSON.parse(element);
 		let ItemObject = new Item(element.name);
-		ItemObject.setStock(element.stock);
-		ItemObject.setPrice(ConversionUtil.dollarToNumber(element.cost));
-
-		//put into both BSTs
-		NameSortBSt.add(ItemObject);
-	} catch (e) {
-		console.log(e);
+		ItemObject.stock = element.stock;
+		ItemObject.price = ConversionUtil.dollarToNumber(element.cost);
+		let itemDup = NameSortBSt.remove(ItemObject);
+		if (itemDup != null) {
+			ItemObject.stock = ItemObject.stock + itemDup.stock;
+			ItemObject.price = (ItemObject.price + itemDup.price) / 2;
+		}
+		if (ItemObject.price > 0) NameSortBSt.add(ItemObject);
 	}
 }
-console.log(NameSortBSt.inOrder().map((m) => m.getName()));
+
+//File Output
+let SortedArr = NameSortBSt.inOrder();
+SortedArr = SortedArr.filter((item) => !(item.stock <= 0));
+
+let output = `There are ${SortedArr.length} unique items in stock.\n\n\n`;
+
+output = output + SortedArr.join("\n");
+fs.writeFile("storeData.txt", output, function (err) {
+	if (err) throw err;
+});
